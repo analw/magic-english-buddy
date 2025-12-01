@@ -40,7 +40,8 @@ const resources = {
         guide_click_title: "Click Words",
         guide_click_desc: "Click any word to hear it pronounced.",
         guide_select_title: "Select Sentences",
-        guide_select_desc: "Highlight any text with your mouse to read just that part."
+        guide_select_desc: "Highlight any text with your mouse to read just that part.",
+        no_text: "No text to read. Please go back and enter some text."
       },
       controls: {
         options: "Options",
@@ -91,7 +92,8 @@ const resources = {
         guide_click_title: "点击查词",
         guide_click_desc: "点击任意单词听发音。",
         guide_select_title: "划句朗读",
-        guide_select_desc: "选中任意文本进行单独朗读。"
+        guide_select_desc: "选中任意文本进行单独朗读。",
+        no_text: "没有可朗读的文本，请返回并输入内容。"
       },
       controls: {
         options: "设置",

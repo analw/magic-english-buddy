@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Home } from './components/Home';
 import { Player } from './components/Player';
 import { BookOpen, Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-type ViewState = 'home' | 'player';
-
-const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('home');
-  const [storyText, setStoryText] = useState<string>("");
+const Layout: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
 
-  const handleStartPractice = (text: string) => {
-    setStoryText(text);
-    setView('player');
-  };
+  const isPlayerPage = location.pathname === '/player';
 
   const handleBackToHome = () => {
-    setView('home');
+    navigate('/');
   };
 
   const toggleLanguage = () => {
@@ -29,18 +25,18 @@ const App: React.FC = () => {
       {/* Global Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-brand-light p-4 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div 
+          <div
             className="flex items-center gap-3 cursor-pointer group"
             onClick={handleBackToHome}
           >
             <div className="bg-brand text-white p-2 rounded-2xl shadow-lg shadow-brand/20 transition-transform group-hover:scale-110 group-hover:rotate-[-5deg]">
-               <BookOpen size={24} />
+              <BookOpen size={24} />
             </div>
             <h1 className="text-xl md:text-2xl font-display font-bold text-brand-dark tracking-tight">
               {t('app.title')}
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <button
               onClick={toggleLanguage}
@@ -50,8 +46,8 @@ const App: React.FC = () => {
               {i18n.language === 'en' ? '中文' : 'EN'}
             </button>
 
-            {view === 'player' && (
-              <button 
+            {isPlayerPage && (
+              <button
                 onClick={handleBackToHome}
                 className="text-sm font-bold text-slate-500 hover:text-brand bg-slate-100 hover:bg-white px-4 py-2 rounded-xl transition-all"
               >
@@ -63,16 +59,25 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 md:p-6 mt-4">
-        {view === 'home' ? (
-          <Home onStart={handleStartPractice} initialText={storyText} />
-        ) : (
-          <Player text={storyText} onBack={handleBackToHome} />
-        )}
+        <Outlet />
       </main>
 
       {/* Footer Decoration */}
       <div className="fixed bottom-0 left-0 w-full h-2 bg-gradient-to-r from-fun-pink via-fun-yellow to-brand pointer-events-none z-40"></div>
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <BrowserRouter basename="/magic-english-buddy">
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/player" element={<Player />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 };
 

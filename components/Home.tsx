@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, PlayCircle, PenTool, Eraser, Library, Book } from 'lucide-react';
 import { generateStory } from '../services/geminiService';
 import { useTranslation } from 'react-i18next';
 import { PRESETS, PresetStory } from '../data/presets';
 import clsx from 'clsx';
 
-interface HomeProps {
-  onStart: (text: string) => void;
-  initialText: string;
+interface LocationState {
+  text?: string;
 }
 
-export const Home: React.FC<HomeProps> = ({ onStart, initialText }) => {
-  const [text, setText] = useState(initialText);
+export const Home: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as LocationState | null;
+  
+  const [text, setText] = useState(locationState?.text || '');
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate'>('beginner');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -36,6 +40,11 @@ export const Home: React.FC<HomeProps> = ({ onStart, initialText }) => {
   const handleSelectPreset = (content: string) => {
     setText(content);
     setMode('write');
+  };
+
+  const handleStartPractice = () => {
+    if (!text.trim()) return;
+    navigate('/player', { state: { text } });
   };
 
   const filteredPresets = activeCategory === 'all' 
@@ -218,7 +227,7 @@ export const Home: React.FC<HomeProps> = ({ onStart, initialText }) => {
       {mode === 'write' && (
         <div className="flex justify-center">
           <button
-            onClick={() => onStart(text)}
+            onClick={handleStartPractice}
             disabled={!text.trim()}
             className="group relative px-8 py-4 bg-brand hover:bg-brand-dark text-white rounded-full font-display font-bold text-xl shadow-xl shadow-brand/30 transition-all hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >

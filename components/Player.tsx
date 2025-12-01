@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { TextDisplay } from './TextDisplay';
 import { Controls } from './Controls';
 import { useWebSpeech } from '../hooks/useWebSpeech';
 import { WordToken, DebugInfo } from '../types';
-import { Bug } from 'lucide-react';
+import { Bug, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-interface PlayerProps {
-  text: string;
-  onBack: () => void;
+interface LocationState {
+  text?: string;
 }
 
 const DebugOverlay: React.FC<{ info: DebugInfo }> = ({ info }) => (
@@ -43,13 +43,25 @@ const DebugOverlay: React.FC<{ info: DebugInfo }> = ({ info }) => (
   </div>
 );
 
-export const Player: React.FC<PlayerProps> = ({ text, onBack }) => {
+export const Player: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const locationState = location.state as LocationState | null;
+  const text = locationState?.text || '';
+  
   const [tokens, setTokens] = useState<WordToken[]>([]);
   const [speed, setSpeed] = useState(1.0);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
   const [showDebug, setShowDebug] = useState(false);
   const { t } = useTranslation();
+
+  // Redirect to home if no text
+  useEffect(() => {
+    if (!text) {
+      navigate('/', { replace: true });
+    }
+  }, [text, navigate]);
   
   // Check for debug flag in URL
   const allowDebug = useMemo(() => {
@@ -118,6 +130,26 @@ export const Player: React.FC<PlayerProps> = ({ text, onBack }) => {
       speakText(selectedText);
     }
   };
+
+  const handleBackToHome = () => {
+    navigate('/', { state: { text } });
+  };
+
+  // Show nothing while redirecting
+  if (!text) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <AlertTriangle size={48} className="text-amber-400" />
+        <p className="text-slate-500 text-lg">{t('player.no_text')}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-3 bg-brand text-white rounded-xl font-bold hover:bg-brand-dark transition-colors"
+        >
+          {t('app.back')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
