@@ -21,35 +21,35 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-light font-sans selection:bg-fun-pink selection:text-white pb-10">
+    <div className="min-h-screen bg-brand-light font-sans selection:bg-fun-pink selection:text-white pb-6 md:pb-10">
       {/* Global Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-brand-light p-4 sticky top-0 z-40">
+      <header className="bg-white/90 backdrop-blur-md border-b border-brand-light px-3 py-2.5 md:p-4 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-2 md:gap-3 cursor-pointer group"
             onClick={handleBackToHome}
           >
-            <div className="bg-brand text-white p-2 rounded-2xl shadow-lg shadow-brand/20 transition-transform group-hover:scale-110 group-hover:rotate-[-5deg]">
-              <BookOpen size={24} />
+            <div className="bg-brand text-white p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-lg shadow-brand/20 transition-transform group-hover:scale-110 group-hover:rotate-[-5deg]">
+              <BookOpen size={20} className="md:w-6 md:h-6" />
             </div>
-            <h1 className="text-xl md:text-2xl font-display font-bold text-brand-dark tracking-tight">
+            <h1 className="text-base md:text-2xl font-display font-bold text-brand-dark tracking-tight">
               {t('app.title')}
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 hover:bg-white text-slate-600 font-bold text-sm transition-colors border border-transparent hover:border-slate-200"
+              className="flex items-center gap-1 md:gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 rounded-lg md:rounded-xl bg-slate-50 hover:bg-white text-slate-600 font-bold text-xs md:text-sm transition-colors border border-transparent hover:border-slate-200"
             >
-              <Languages size={18} />
+              <Languages size={16} className="md:w-[18px] md:h-[18px]" />
               {i18n.language === 'en' ? '中文' : 'EN'}
             </button>
 
             {isPlayerPage && (
               <button
                 onClick={handleBackToHome}
-                className="text-sm font-bold text-slate-500 hover:text-brand bg-slate-100 hover:bg-white px-4 py-2 rounded-xl transition-all"
+                className="text-xs md:text-sm font-bold text-slate-500 hover:text-brand bg-slate-100 hover:bg-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl transition-all"
               >
                 {t('app.back')}
               </button>
@@ -58,12 +58,12 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 md:p-6 mt-4">
+      <main className="max-w-4xl mx-auto px-3 py-3 md:p-6 md:mt-4">
         <Outlet />
       </main>
 
       {/* Footer Decoration */}
-      <div className="fixed bottom-0 left-0 w-full h-2 bg-gradient-to-r from-fun-pink via-fun-yellow to-brand pointer-events-none z-40"></div>
+      <div className="fixed bottom-0 left-0 w-full h-1.5 md:h-2 bg-gradient-to-r from-fun-pink via-fun-yellow to-brand pointer-events-none z-40"></div>
     </div>
   );
 };

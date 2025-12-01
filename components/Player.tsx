@@ -12,33 +12,33 @@ interface LocationState {
 }
 
 const DebugOverlay: React.FC<{ info: DebugInfo }> = ({ info }) => (
-  <div className="fixed bottom-32 left-4 p-4 bg-black/80 text-green-400 font-mono text-xs rounded-lg shadow-xl z-[101] backdrop-blur-md max-w-xs pointer-events-none opacity-80">
+  <div className="fixed bottom-40 md:bottom-32 left-2 md:left-4 p-3 md:p-4 bg-black/80 text-green-400 font-mono text-[10px] md:text-xs rounded-lg shadow-xl z-[101] backdrop-blur-md max-w-[280px] md:max-w-xs pointer-events-none opacity-80">
     <div className="flex items-center gap-2 mb-2 border-b border-green-400/30 pb-1">
-        <Bug size={14} /> <span>TTS Debugger</span>
+      <Bug size={12} className="md:w-3.5 md:h-3.5" /> <span>TTS Debugger</span>
     </div>
-    <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-1">
-        <span className="text-slate-400">Status:</span> 
-        <span className="font-bold text-white">{info.playbackState}</span>
-        
-        <span className="text-slate-400">Voice:</span> 
-        <span className="truncate text-blue-300" title={info.voiceName}>{info.voiceName || '-'}</span>
+    <div className="grid grid-cols-[70px_1fr] md:grid-cols-[80px_1fr] gap-x-2 gap-y-1">
+      <span className="text-slate-400">Status:</span>
+      <span className="font-bold text-white">{info.playbackState}</span>
 
-        <span className="text-slate-400">Type:</span> 
-        <span className={info.isLocalVoice ? "text-green-400" : "text-red-400"}>
-            {info.isLocalVoice ? "Local (Good)" : "Network (May fail)"}
-        </span>
+      <span className="text-slate-400">Voice:</span>
+      <span className="truncate text-blue-300" title={info.voiceName}>{info.voiceName || '-'}</span>
 
-        <span className="text-slate-400">Char Idx:</span> 
-        <span>{info.charIndex}</span>
-        
-        <span className="text-slate-400">Token:</span> 
-        <span className="text-yellow-300 truncate">"{info.matchedTokenText}"</span>
-        
-        <span className="text-slate-400">Tokens:</span> 
-        <span>{info.totalTokens}</span>
+      <span className="text-slate-400">Type:</span>
+      <span className={info.isLocalVoice ? "text-green-400" : "text-red-400"}>
+        {info.isLocalVoice ? "Local (Good)" : "Network (May fail)"}
+      </span>
 
-        <span className="text-slate-400">Last Evt:</span> 
-        <span>{info.lastEventTime}</span>
+      <span className="text-slate-400">Char Idx:</span>
+      <span>{info.charIndex}</span>
+
+      <span className="text-slate-400">Token:</span>
+      <span className="text-yellow-300 truncate">"{info.matchedTokenText}"</span>
+
+      <span className="text-slate-400">Tokens:</span>
+      <span>{info.totalTokens}</span>
+
+      <span className="text-slate-400">Last Evt:</span>
+      <span>{info.lastEventTime}</span>
     </div>
   </div>
 );
@@ -48,12 +48,13 @@ export const Player: React.FC = () => {
   const navigate = useNavigate();
   const locationState = location.state as LocationState | null;
   const text = locationState?.text || '';
-  
+
   const [tokens, setTokens] = useState<WordToken[]>([]);
   const [speed, setSpeed] = useState(1.0);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
   const [showDebug, setShowDebug] = useState(false);
+  const [controlsHeight, setControlsHeight] = useState(80); // Default height
   const { t } = useTranslation();
 
   // Redirect to home if no text
@@ -62,11 +63,11 @@ export const Player: React.FC = () => {
       navigate('/', { replace: true });
     }
   }, [text, navigate]);
-  
+
   // Check for debug flag in URL
   const allowDebug = useMemo(() => {
     if (typeof window !== 'undefined') {
-        return new URLSearchParams(window.location.search).get('debug') === 'true';
+      return new URLSearchParams(window.location.search).get('debug') === 'true';
     }
     return false;
   }, []);
@@ -75,7 +76,7 @@ export const Player: React.FC = () => {
   useEffect(() => {
     const loadVoices = () => {
       let avail = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-      
+
       // Sort voices: Local Service voices first!
       // This is critical because remote voices often don't support onboundary events.
       avail.sort((a, b) => {
@@ -84,19 +85,19 @@ export const Player: React.FC = () => {
       });
 
       setVoices(avail);
-      
+
       if (avail.length > 0) {
-          const currentExists = avail.find(v => v.name === selectedVoiceName);
-          if (!selectedVoiceName || !currentExists) {
-             // Priority: 
-             // 1. Local Microsoft/System voices (very reliable for events)
-             // 2. Any Local voice
-             // 3. Fallback
-             const preferred = avail.find(v => v.localService && (v.name.includes('Microsoft') || v.name.includes('Samantha'))) || 
-                               avail.find(v => v.localService) ||
-                               avail[0];
-             setSelectedVoiceName(preferred?.name || '');
-          }
+        const currentExists = avail.find(v => v.name === selectedVoiceName);
+        if (!selectedVoiceName || !currentExists) {
+          // Priority: 
+          // 1. Local Microsoft/System voices (very reliable for events)
+          // 2. Any Local voice
+          // 3. Fallback
+          const preferred = avail.find(v => v.localService && (v.name.includes('Microsoft') || v.name.includes('Samantha'))) ||
+            avail.find(v => v.localService) ||
+            avail[0];
+          setSelectedVoiceName(preferred?.name || '');
+        }
       }
     };
 
@@ -106,13 +107,13 @@ export const Player: React.FC = () => {
 
   const selectedVoice = voices.find(v => v.name === selectedVoiceName) || null;
 
-  const { 
-    isSpeaking, 
-    isPaused, 
-    highlightIndex, 
+  const {
+    isSpeaking,
+    isPaused,
+    highlightIndex,
     debugInfo,
-    play, 
-    pause, 
+    play,
+    pause,
     stop,
     speakSingleWord,
     speakText
@@ -121,7 +122,7 @@ export const Player: React.FC = () => {
     speed,
     tokens,
     selectedVoice,
-    onEnd: () => {}
+    onEnd: () => { }
   });
 
   const handleSelection = (selectedText: string) => {
@@ -138,12 +139,12 @@ export const Player: React.FC = () => {
   // Show nothing while redirecting
   if (!text) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <AlertTriangle size={48} className="text-amber-400" />
-        <p className="text-slate-500 text-lg">{t('player.no_text')}</p>
+      <div className="flex flex-col items-center justify-center py-12 md:py-20 space-y-3 md:space-y-4">
+        <AlertTriangle size={40} className="md:w-12 md:h-12 text-amber-400" />
+        <p className="text-slate-500 text-base md:text-lg">{t('player.no_text')}</p>
         <button
           onClick={() => navigate('/')}
-          className="px-6 py-3 bg-brand text-white rounded-xl font-bold hover:bg-brand-dark transition-colors"
+          className="px-5 py-2.5 md:px-6 md:py-3 bg-brand text-white rounded-lg md:rounded-xl font-bold text-sm md:text-base hover:bg-brand-dark transition-colors"
         >
           {t('app.back')}
         </button>
@@ -154,47 +155,50 @@ export const Player: React.FC = () => {
   return (
     <>
       {/* 
-        Increased padding bottom to pb-96 (24rem / 384px) to ensure the fixed Controls 
-        never obscure the text content, regardless of screen size. 
+        Padding bottom dynamically adjusted based on Controls height 
+        to ensure fixed Controls never obscure the text content. 
       */}
-      <div className="pb-96 animate-in fade-in zoom-in-95 duration-300 relative">
-        
+      <div
+        className="animate-in fade-in zoom-in-95 duration-300 relative"
+        style={{ paddingBottom: `${controlsHeight + 24}px` }}
+      >
+
         {/* Debug Toggle - Only visible if ?debug=true */}
         {allowDebug && (
-          <button 
-              onClick={() => setShowDebug(!showDebug)}
-              className="absolute -top-10 right-0 text-xs text-slate-300 hover:text-slate-500 font-mono"
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            className="absolute -top-8 md:-top-10 right-0 text-[10px] md:text-xs text-slate-300 hover:text-slate-500 font-mono"
           >
-              [{showDebug ? t('player.debug_hide') : t('player.debug_show')}]
+            [{showDebug ? t('player.debug_hide') : t('player.debug_show')}]
           </button>
         )}
 
         {/* Display Area */}
         <div className="relative">
-          <TextDisplay 
+          <TextDisplay
             rawText={text}
-            highlightIndex={highlightIndex} 
+            highlightIndex={highlightIndex}
             onTokensGenerated={setTokens}
             onWordClick={(word) => {
               speakSingleWord(word);
             }}
             onTextSelected={handleSelection}
           />
-          
+
           {/* Simple Guide */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-center px-2">
-              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 text-sm text-slate-600 shadow-sm">
-                  <span className="block font-bold text-brand mb-1 text-base">{t('player.guide_interactive_title')}</span>
-                  {t('player.guide_interactive_desc')}
-              </div>
-              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 text-sm text-slate-600 shadow-sm">
-                  <span className="block font-bold text-fun-pink mb-1 text-base">{t('player.guide_click_title')}</span>
-                  {t('player.guide_click_desc')}
-              </div>
-              <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 text-sm text-slate-600 shadow-sm">
-                  <span className="block font-bold text-fun-purple mb-1 text-base">{t('player.guide_select_title')}</span>
-                  {t('player.guide_select_desc')}
-              </div>
+          <div className="mt-4 md:mt-8 grid grid-cols-3 gap-2 md:gap-4 text-center">
+            <div className="bg-white/60 backdrop-blur-sm p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 text-[10px] md:text-sm text-slate-600 shadow-sm">
+              <span className="block font-bold text-brand mb-0.5 md:mb-1 text-xs md:text-base">{t('player.guide_interactive_title')}</span>
+              <span className="hidden md:inline">{t('player.guide_interactive_desc')}</span>
+            </div>
+            <div className="bg-white/60 backdrop-blur-sm p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 text-[10px] md:text-sm text-slate-600 shadow-sm">
+              <span className="block font-bold text-fun-pink mb-0.5 md:mb-1 text-xs md:text-base">{t('player.guide_click_title')}</span>
+              <span className="hidden md:inline">{t('player.guide_click_desc')}</span>
+            </div>
+            <div className="bg-white/60 backdrop-blur-sm p-2.5 md:p-4 rounded-xl md:rounded-2xl border border-slate-100 text-[10px] md:text-sm text-slate-600 shadow-sm">
+              <span className="block font-bold text-fun-purple mb-0.5 md:mb-1 text-xs md:text-base">{t('player.guide_select_title')}</span>
+              <span className="hidden md:inline">{t('player.guide_select_desc')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -202,7 +206,7 @@ export const Player: React.FC = () => {
       {showDebug && <DebugOverlay info={debugInfo} />}
 
       {/* Fixed Controls */}
-      <Controls 
+      <Controls
         isPlaying={isSpeaking}
         isPaused={isPaused}
         speed={speed}
@@ -213,8 +217,9 @@ export const Player: React.FC = () => {
         onStop={stop}
         onSpeedChange={setSpeed}
         onVoiceChange={setSelectedVoiceName}
-        onGeminiTTS={() => {}} 
+        onGeminiTTS={() => { }}
         isGeminiLoading={false}
+        onHeightChange={setControlsHeight}
       />
     </>
   );
