@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TextDisplay } from './TextDisplay';
 import { Controls } from './Controls';
-import { useWebSpeech } from '../hooks/useWebSpeech';
+import { useWebSpeech, isSpeechAvailable } from '../hooks/useWebSpeech';
 import { WordToken, DebugInfo } from '../types';
-import { Bug, AlertTriangle } from 'lucide-react';
+import { Bug, AlertTriangle, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface LocationState {
@@ -116,7 +116,8 @@ export const Player: React.FC = () => {
     pause,
     stop,
     speakSingleWord,
-    speakText
+    speakText,
+    isAvailable
   } = useWebSpeech({
     text,
     speed,
@@ -130,10 +131,6 @@ export const Player: React.FC = () => {
       if (isSpeaking) stop();
       speakText(selectedText);
     }
-  };
-
-  const handleBackToHome = () => {
-    navigate('/', { state: { text } });
   };
 
   // Show nothing while redirecting
@@ -152,6 +149,9 @@ export const Player: React.FC = () => {
     );
   }
 
+  // Check if TTS is available
+  const ttsUnavailable = !isAvailable;
+
   return (
     <>
       {/* 
@@ -162,6 +162,16 @@ export const Player: React.FC = () => {
         className="animate-in fade-in zoom-in-95 duration-300 relative"
         style={{ paddingBottom: `${controlsHeight + 24}px` }}
       >
+
+        {/* TTS Unavailable Warning */}
+        {ttsUnavailable && (
+          <div className="mb-4 p-3 md:p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+            <VolumeX size={20} className="text-amber-500 flex-shrink-0" />
+            <p className="text-amber-700 text-sm md:text-base">
+              {t('player.tts_unavailable', '您的浏览器不支持语音合成功能，朗读功能将不可用。')}
+            </p>
+          </div>
+        )}
 
         {/* Debug Toggle - Only visible if ?debug=true */}
         {allowDebug && (
@@ -217,9 +227,8 @@ export const Player: React.FC = () => {
         onStop={stop}
         onSpeedChange={setSpeed}
         onVoiceChange={setSelectedVoiceName}
-        onGeminiTTS={() => { }}
-        isGeminiLoading={false}
         onHeightChange={setControlsHeight}
+        disabled={ttsUnavailable}
       />
     </>
   );

@@ -14,9 +14,8 @@ interface ControlsProps {
   onStop: () => void;
   onSpeedChange: (speed: number) => void;
   onVoiceChange: (voiceName: string) => void;
-  onGeminiTTS: () => void;
-  isGeminiLoading: boolean;
   onHeightChange?: (height: number) => void;
+  disabled?: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -31,6 +30,7 @@ export const Controls: React.FC<ControlsProps> = ({
   onSpeedChange,
   onVoiceChange,
   onHeightChange,
+  disabled = false,
 }) => {
   const [showMobileSettings, setShowMobileSettings] = useState(false);
   const { t } = useTranslation();
@@ -76,8 +76,14 @@ export const Controls: React.FC<ControlsProps> = ({
               {!isPlaying && !isPaused ? (
                 <button
                   onClick={handlePlay}
-                  className="bg-brand text-white w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg shadow-brand/30 hover:scale-105 active:scale-95 transition-all"
-                  aria-label="Play"
+                  disabled={disabled}
+                  className={clsx(
+                    "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg transition-all",
+                    disabled 
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+                      : "bg-brand text-white shadow-brand/30 hover:scale-105 active:scale-95"
+                  )}
+                  aria-label={t('controls.play', 'Play')}
                 >
                   <Play fill="currentColor" size={24} className="md:w-7 md:h-7 ml-0.5" />
                 </button>
@@ -86,21 +92,42 @@ export const Controls: React.FC<ControlsProps> = ({
                   {isPaused ? (
                     <button
                       onClick={handlePlay}
-                      className="bg-brand text-white w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+                      disabled={disabled}
+                      className={clsx(
+                        "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg transition-all",
+                        disabled 
+                          ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+                          : "bg-brand text-white hover:scale-105"
+                      )}
+                      aria-label={t('controls.resume', 'Resume')}
                     >
                       <Play fill="currentColor" size={22} className="md:w-6 md:h-6 ml-0.5" />
                     </button>
                   ) : (
                     <button
                       onClick={onPause}
-                      className="bg-amber-400 text-white w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+                      disabled={disabled}
+                      className={clsx(
+                        "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shadow-lg transition-all",
+                        disabled 
+                          ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+                          : "bg-amber-400 text-white hover:scale-105"
+                      )}
+                      aria-label={t('controls.pause', 'Pause')}
                     >
                       <Pause fill="currentColor" size={22} className="md:w-6 md:h-6" />
                     </button>
                   )}
                   <button
                     onClick={onStop}
-                    className="bg-slate-100 text-slate-400 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center hover:bg-red-50 hover:text-red-400 transition-colors"
+                    disabled={disabled}
+                    className={clsx(
+                      "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-colors",
+                      disabled 
+                        ? "bg-slate-100 text-slate-300 cursor-not-allowed" 
+                        : "bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-400"
+                    )}
+                    aria-label={t('controls.stop', 'Stop')}
                   >
                     <Square fill="currentColor" size={18} className="md:w-5 md:h-5" />
                   </button>

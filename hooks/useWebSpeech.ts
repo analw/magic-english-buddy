@@ -9,6 +9,20 @@ interface UseWebSpeechProps {
   onEnd: () => void;
 }
 
+// Detect iOS for platform-specific workarounds
+const isIOS = () => {
+  if (typeof window === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+// Check if SpeechSynthesis is available
+export const isSpeechAvailable = () => {
+  return typeof window !== 'undefined' && 
+    'speechSynthesis' in window && 
+    'SpeechSynthesisUtterance' in window;
+};
+
 export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseWebSpeechProps) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -27,6 +41,12 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
   // Use a ref to store the utterance to prevent garbage collection
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const tokensRef = useRef<WordToken[]>(tokens);
+  
+  // iOS workaround: track pause position for manual resume
+  const pausePositionRef = useRef<number>(0);
+  const boundaryReceivedRef = useRef<boolean>(false);
+  const highlightTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   // Keep tokens ref in sync
   useEffect(() => {
@@ -39,17 +59,34 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (!isSpeechAvailable()) return;
       const synth = getSynth();
       synth.cancel();
       if ((window as any).__ttsUtterance) {
         delete (window as any).__ttsUtterance;
       }
+      // Clear highlight timer
+      if (highlightTimerRef.current) {
+        clearInterval(highlightTimerRef.current);
+        highlightTimerRef.current = null;
+      }
     };
   }, []);
 
-  // Handle settings changes (Auto-restart)
+  // Store current state in refs to avoid stale closures
+  const isSpeakingRef = useRef(isSpeaking);
+  const isPausedRef = useRef(isPaused);
+  
   useEffect(() => {
-    if (isSpeaking && !isPaused) {
+    isSpeakingRef.current = isSpeaking;
+    isPausedRef.current = isPaused;
+  }, [isSpeaking, isPaused]);
+
+  // Handle settings changes (Auto-restart) - use refs to avoid dependency issues
+  useEffect(() => {
+    if (!isSpeechAvailable()) return;
+    
+    if (isSpeakingRef.current && !isPausedRef.current) {
        const currentText = utteranceRef.current?.text;
        // Only restart if the text is consistent and matches the main story
        // (Don't auto restart if we are reading a single selected word)
@@ -57,12 +94,13 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
           const synth = getSynth();
           synth.cancel();
           const timer = setTimeout(() => {
-            play();
+            // Trigger play through a fresh call
+            playRef.current?.();
           }, 50);
           return () => clearTimeout(timer);
        }
     }
-  }, [speed, selectedVoice?.name]); 
+  }, [speed, selectedVoice?.name, text]); 
 
   const handleError = (e: SpeechSynthesisErrorEvent) => {
     if (e.error === 'canceled' || e.error === 'interrupted') return;
@@ -85,22 +123,62 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
     }));
   };
 
+  // Stop highlight fallback timer
+  const stopHighlightTimer = useCallback(() => {
+    if (highlightTimerRef.current) {
+      clearInterval(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+  }, []);
+
+  // Start highlight fallback timer for iOS (time-based estimation)
+  const startHighlightFallback = useCallback(() => {
+    if (!isIOS()) return;
+    
+    stopHighlightTimer();
+    startTimeRef.current = Date.now();
+    
+    // Estimate ~150ms per word at 1x speed, adjust by rate
+    const msPerWord = 150 / speed;
+    
+    highlightTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const currentTokens = tokensRef.current;
+      
+      // Only use fallback if boundary events haven't fired
+      if (!boundaryReceivedRef.current && currentTokens.length > 0) {
+        const estimatedIndex = Math.min(
+          Math.floor(elapsed / msPerWord),
+          currentTokens.length - 1
+        );
+        setHighlightIndex(estimatedIndex);
+      }
+    }, msPerWord);
+  }, [speed, stopHighlightTimer]);
+
   const stop = useCallback(() => {
+    if (!isSpeechAvailable()) return;
+    
     const synth = getSynth();
     synth.cancel();
     setIsSpeaking(false);
     setIsPaused(false);
     setHighlightIndex(-1);
     utteranceRef.current = null;
+    pausePositionRef.current = 0;
+    stopHighlightTimer();
     setDebugInfo(prev => ({ ...prev, playbackState: 'Stopped', isSpeaking: false }));
-  }, []);
+  }, [stopHighlightTimer]);
 
   const speakText = useCallback((arbitraryText: string) => {
+      if (!isSpeechAvailable()) return;
+      
       const synth = getSynth();
       synth.cancel(); 
       setIsPaused(false);
       setIsSpeaking(true);
       setHighlightIndex(-1);
+      stopHighlightTimer();
       
       const utterance = new SpeechSynthesisUtterance(arbitraryText);
       (window as any).__ttsUtterance = utterance; 
@@ -115,12 +193,15 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
       };
       utterance.onerror = handleError;
       synth.speak(utterance);
-  }, [selectedVoice, speed]);
+  }, [selectedVoice, speed, stopHighlightTimer]);
 
   const play = useCallback(() => {
+    if (!isSpeechAvailable()) return;
+    
     const synth = getSynth();
 
-    if (isPaused) {
+    // iOS workaround: native pause/resume is unreliable, so we track position manually
+    if (isPaused && !isIOS()) {
       synth.resume();
       setIsPaused(false);
       setIsSpeaking(true);
@@ -130,6 +211,9 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
 
     synth.cancel();
     setHighlightIndex(-1);
+    boundaryReceivedRef.current = false;
+    stopHighlightTimer();
+    
     setDebugInfo(prev => ({ 
         ...prev, 
         playbackState: 'Starting...', 
@@ -149,13 +233,20 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
     utterance.onstart = () => {
       setIsSpeaking(true);
       setIsPaused(false);
+      pausePositionRef.current = 0;
       setDebugInfo(prev => ({ ...prev, playbackState: 'Speaking' }));
+      
+      // Start fallback timer for iOS where boundary events may not fire
+      if (isIOS()) {
+        startHighlightFallback();
+      }
     };
 
     utterance.onend = () => {
       setIsSpeaking(false);
       setIsPaused(false);
       setHighlightIndex(-1);
+      stopHighlightTimer();
       setDebugInfo(prev => ({ ...prev, playbackState: 'Finished', isSpeaking: false }));
       onEnd();
     };
@@ -164,10 +255,12 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
 
     // --- Core Highlighting Logic ---
     utterance.onboundary = (event) => {
-      // Log for debugging
-      console.log(`[TTS Boundary] Name: ${event.name}, CharIdx: ${event.charIndex}, Time: ${event.elapsedTime}`);
+      // Mark that we're receiving boundary events (disable fallback)
+      boundaryReceivedRef.current = true;
+      stopHighlightTimer();
       
       const charIndex = event.charIndex;
+      pausePositionRef.current = charIndex; // Track position for iOS resume
       const currentTokens = tokensRef.current;
       
       if (typeof charIndex === 'number' && currentTokens.length > 0) {
@@ -201,23 +294,37 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
     };
 
     synth.speak(utterance);
-  }, [text, speed, selectedVoice, isPaused, onEnd]); 
+  }, [text, speed, selectedVoice, isPaused, onEnd, stopHighlightTimer, startHighlightFallback]); 
 
   const pause = useCallback(() => {
+    if (!isSpeechAvailable()) return;
+    
     const synth = getSynth();
     if (synth.speaking && !synth.paused) {
-      synth.pause();
-      setIsPaused(true);
-      setIsSpeaking(false); 
-      setDebugInfo(prev => ({ ...prev, playbackState: 'Paused' }));
+      // iOS workaround: pause() is unreliable, just cancel and track position
+      if (isIOS()) {
+        synth.cancel();
+        setIsPaused(true);
+        setIsSpeaking(false);
+        stopHighlightTimer();
+        setDebugInfo(prev => ({ ...prev, playbackState: 'Paused (iOS)' }));
+      } else {
+        synth.pause();
+        setIsPaused(true);
+        setIsSpeaking(false);
+        setDebugInfo(prev => ({ ...prev, playbackState: 'Paused' }));
+      }
     }
-  }, []);
+  }, [stopHighlightTimer]);
 
   const speakSingleWord = useCallback((word: string) => {
+    if (!isSpeechAvailable()) return;
+    
     const synth = getSynth();
     synth.cancel();
     setIsSpeaking(true);
-    setHighlightIndex(-1); 
+    setHighlightIndex(-1);
+    stopHighlightTimer();
     
     const utterance = new SpeechSynthesisUtterance(word);
     (window as any).__ttsUtterance = utterance;
@@ -230,7 +337,13 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
     utterance.onerror = handleError;
     
     synth.speak(utterance);
-  }, [selectedVoice, speed]);
+  }, [selectedVoice, speed, stopHighlightTimer]);
+
+  // Store play function in ref for settings change handler
+  const playRef = useRef(play);
+  useEffect(() => {
+    playRef.current = play;
+  }, [play]);
 
   return {
     isSpeaking,
@@ -241,6 +354,7 @@ export const useWebSpeech = ({ text, speed, tokens, selectedVoice, onEnd }: UseW
     pause,
     stop,
     speakSingleWord,
-    speakText
+    speakText,
+    isAvailable: isSpeechAvailable()
   };
 };

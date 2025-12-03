@@ -60,7 +60,7 @@ export const TextDisplay: React.FC<TextDisplayProps> = ({
     }
   }, [highlightIndex]);
 
-  // Handle Text Selection
+  // Handle Text Selection (supports both mouse and touch)
   useEffect(() => {
     const handleSelectionChange = () => {
       const selection = window.getSelection();
@@ -74,20 +74,42 @@ export const TextDisplay: React.FC<TextDisplayProps> = ({
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
         
-        setSelectionPopup({
-            x: rect.left + (rect.width / 2),
-            y: rect.top - 10,
-            text: text
-        });
+        // Calculate position with viewport boundary detection
+        const viewportWidth = window.innerWidth;
+        const popupWidth = 150; // Approximate popup width
+        let x = rect.left + (rect.width / 2);
+        
+        // Ensure popup doesn't overflow left/right edges
+        x = Math.max(popupWidth / 2 + 10, x);
+        x = Math.min(viewportWidth - popupWidth / 2 - 10, x);
+        
+        // Ensure popup doesn't go above viewport
+        let y = rect.top - 10;
+        if (y < 60) {
+          // Show below selection if too close to top
+          y = rect.bottom + 10;
+        }
+        
+        setSelectionPopup({ x, y, text });
       }
+    };
+
+    // Debounce for touch events to avoid premature triggers
+    let touchTimer: ReturnType<typeof setTimeout>;
+    const handleTouchEnd = () => {
+      // Small delay to let selection finalize on mobile
+      touchTimer = setTimeout(handleSelectionChange, 100);
     };
 
     document.addEventListener('mouseup', handleSelectionChange);
     document.addEventListener('keyup', handleSelectionChange);
+    document.addEventListener('touchend', handleTouchEnd);
     
     return () => {
-        document.removeEventListener('mouseup', handleSelectionChange);
-        document.removeEventListener('keyup', handleSelectionChange);
+      document.removeEventListener('mouseup', handleSelectionChange);
+      document.removeEventListener('keyup', handleSelectionChange);
+      document.removeEventListener('touchend', handleTouchEnd);
+      clearTimeout(touchTimer);
     };
   }, []);
 
