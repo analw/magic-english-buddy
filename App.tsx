@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Home } from './components/Home';
 import { Player } from './components/Player';
-import { BookOpen, Languages } from 'lucide-react';
+import { BookOpen, Languages, Github } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { preloadTesseract } from './services/ocrService';
 
@@ -39,6 +39,15 @@ const Layout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            <a
+              href="https://github.com/xckevin/magic-english-buddy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl bg-slate-50 hover:bg-slate-800 text-slate-600 hover:text-white transition-colors border border-transparent hover:border-slate-800"
+              title="GitHub"
+            >
+              <Github size={18} className="md:w-5 md:h-5" />
+            </a>
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-1 md:gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 rounded-lg md:rounded-xl bg-slate-50 hover:bg-white text-slate-600 font-bold text-xs md:text-sm transition-colors border border-transparent hover:border-slate-200"
