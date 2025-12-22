@@ -210,7 +210,7 @@ export const Home: React.FC = () => {
                 {/* OCR 扫描按钮 */}
                 <button
                   onClick={() => setShowCamera(true)}
-                  className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-fun-purple to-fun-pink text-white text-xs md:text-sm font-bold rounded-lg shadow-lg shadow-fun-purple/20 hover:shadow-xl hover:shadow-fun-purple/30 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  className="absolute bottom-3 right-3 md:bottom-4 md:right-4 flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2 bg-gradient-to-r from-fun-purple to-fun-pink text-white text-xs md:text-sm font-bold rounded-lg shadow-lg shadow-fun-purple/20 hover:shadow-xl hover:shadow-fun-purple/30 hover:-translate-y-0.5 active:translate-y-0 transition-all"
                 >
                   <ScanLine size={14} className="md:w-4 md:h-4" />
                   {t('home.ocr_scan')}
