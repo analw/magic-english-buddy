@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/', // ✅ Cloudflare Pages 必须是 /
+    base: '/',
     plugins: [react()],
     server: {
       port: 3000,
